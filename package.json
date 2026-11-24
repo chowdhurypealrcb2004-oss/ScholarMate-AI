@@ -1,0 +1,22 @@
+{
+  "name": "scholarmate-ai",
+  "version": "1.0.0",
+  "description": "ScholarMate AI - Your Personalized Scholarship Finder",
+  "private": true,
+  "scripts": {
+    "install:all": "npm --prefix backend install && npm --prefix frontend install",
+    "backend": "npm --prefix backend start",
+    "backend:dev": "npm --prefix backend run dev",
+    "frontend": "npm --prefix frontend run dev",
+    "build:frontend": "npm --prefix frontend run build"
+  },
+  "keywords": [
+    "scholarship-finder",
+    "gemini-ai",
+    "react",
+    "express",
+    "bangladesh-scholarships"
+  ],
+  "author": "ScholarMate AI Team",
+  "license": "MIT"
+}

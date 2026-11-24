@@ -1,0 +1,140 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ScholarMateAISharedContracts",
+  "description": "Standardized schema and data contract definitions for ScholarMate AI",
+  "definitions": {
+    "StudentProfile": {
+      "type": "object",
+      "required": ["name", "department", "cgpa", "gender", "needBased"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100,
+          "description": "Full name of the student"
+        },
+        "department": {
+          "type": "string",
+          "enum": ["CSE", "EEE", "CE", "BBA", "English", "Other"],
+          "description": "Academic department or major"
+        },
+        "cgpa": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 4.0,
+          "description": "Current CGPA on a 4.00 scale"
+        },
+        "gender": {
+          "type": "string",
+          "enum": ["Male", "Female", "Other"],
+          "description": "Gender of the student"
+        },
+        "needBased": {
+          "type": "boolean",
+          "description": "Whether the student is seeking financial assistance"
+        }
+      }
+    },
+    "ScholarshipRecord": {
+      "type": "object",
+      "required": [
+        "id",
+        "name",
+        "provider",
+        "min_cgpa",
+        "department",
+        "need_based",
+        "gender",
+        "amount_bdt",
+        "deadline",
+        "description"
+      ],
+      "properties": {
+        "id": { "type": "integer" },
+        "name": { "type": "string" },
+        "provider": { "type": "string" },
+        "min_cgpa": { "type": "number" },
+        "department": { "type": "string" },
+        "need_based": { "type": "string", "enum": ["yes", "no"] },
+        "gender": { "type": "string", "enum": ["All", "Female", "Male"] },
+        "amount_bdt": { "type": "number" },
+        "deadline": { "type": "string", "format": "date" },
+        "description": { "type": "string" }
+      }
+    },
+    "EligibilityStatus": {
+      "type": "string",
+      "enum": ["ELIGIBLE", "ALMOST_ELIGIBLE", "NOT_ELIGIBLE"]
+    },
+    "RequirementBreakdown": {
+      "type": "object",
+      "required": ["cgpaMet", "departmentMet", "needMet", "genderMet", "missingReasons"],
+      "properties": {
+        "cgpaMet": { "type": "boolean" },
+        "departmentMet": { "type": "boolean" },
+        "needMet": { "type": "boolean" },
+        "genderMet": { "type": "boolean" },
+        "cgpaDiff": { "type": "number" },
+        "missingReasons": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "additionalCriteria": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "MatchedScholarship": {
+      "type": "object",
+      "required": ["scholarship", "status", "breakdown"],
+      "properties": {
+        "scholarship": { "$ref": "#/definitions/ScholarshipRecord" },
+        "status": { "$ref": "#/definitions/EligibilityStatus" },
+        "breakdown": { "$ref": "#/definitions/RequirementBreakdown" },
+        "aiExplanation": { "type": "string" }
+      }
+    },
+    "MatchResponse": {
+      "type": "object",
+      "required": ["student", "fullyEligible", "almostEligible", "summary"],
+      "properties": {
+        "student": { "$ref": "#/definitions/StudentProfile" },
+        "fullyEligible": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/MatchedScholarship" }
+        },
+        "almostEligible": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/MatchedScholarship" }
+        },
+        "summary": {
+          "type": "object",
+          "properties": {
+            "totalScholarships": { "type": "integer" },
+            "eligibleCount": { "type": "integer" },
+            "almostEligibleCount": { "type": "integer" },
+            "totalPotentialAidBdt": { "type": "number" }
+          }
+        }
+      }
+    },
+    "AIExplanationRequest": {
+      "type": "object",
+      "required": ["student", "scholarship"],
+      "properties": {
+        "student": { "$ref": "#/definitions/StudentProfile" },
+        "scholarship": { "$ref": "#/definitions/ScholarshipRecord" }
+      }
+    },
+    "AIExplanationResponse": {
+      "type": "object",
+      "required": ["scholarshipId", "explanation", "source"],
+      "properties": {
+        "scholarshipId": { "type": "integer" },
+        "explanation": { "type": "string" },
+        "source": { "type": "string", "enum": ["gemini", "fallback"] }
+      }
+    }
+  }
+}
