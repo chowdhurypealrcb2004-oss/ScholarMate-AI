@@ -1,3 +1,4 @@
+
 # 🎓 ScholarMate AI
 ### *Your Personalized Scholarship Finder*
 
@@ -241,3 +242,7 @@ cd frontend
 npm run dev
 ```
 Open your browser at `http://localhost:5173`.
+
+
+
+
