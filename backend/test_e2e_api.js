@@ -128,6 +128,45 @@ const server = app.listen(0, async () => {
       throw new Error(`Expected 200 OK for /api/match, got ${res5.status}`);
     }
 
+    // 6. Test Module 5 AI Advisor endpoints
+    // 6A. GET /api/ai-advisor/status
+    const getJSON = (path) => {
+      return new Promise((resolve, reject) => {
+        http.get(`${baseUrl}${path}`, (res) => {
+          let body = '';
+          res.on('data', (c) => (body += c));
+          res.on('end', () => resolve({ status: res.statusCode, data: JSON.parse(body) }));
+        }).on('error', reject);
+      });
+    };
+
+    const res6A = await getJSON('/api/ai-advisor/status');
+    console.log(`[PASS] GET /api/ai-advisor/status: ${res6A.status}, mode = ${res6A.data.mode}`);
+    if (res6A.status !== 200 || !res6A.data.success) {
+      throw new Error(`Expected 200 for AI status, got ${res6A.status}`);
+    }
+
+    // 6B. POST /api/ai-advisor/explain (single)
+    const res6B = await postJSON('/api/ai-advisor/explain', {
+      student: { name: 'Ayesha Rahman', department: 'CSE', cgpa: 3.85, gender: 'Female', needBased: true },
+      scholarship: res1.data.classification.eligible[0].scholarship,
+      evaluatedRecord: res1.data.classification.eligible[0],
+    });
+    console.log(`[PASS] POST /api/ai-advisor/explain: ${res6B.status}, source = ${res6B.data.data.source}`);
+    if (res6B.status !== 200 || !res6B.data.data.explanation) {
+      throw new Error(`Expected 200 and explanation for /api/ai-advisor/explain, got ${res6B.status}`);
+    }
+
+    // 6C. POST /api/ai-advisor/summary
+    const res6C = await postJSON('/api/ai-advisor/summary', {
+      student: { name: 'Ayesha Rahman', department: 'CSE', cgpa: 3.85, gender: 'Female', needBased: true },
+      evaluationResults: res1.data,
+    });
+    console.log(`[PASS] POST /api/ai-advisor/summary: ${res6C.status}, strengths = ${res6C.data.data.topStrengths.length}`);
+    if (res6C.status !== 200 || !res6C.data.data.overview) {
+      throw new Error(`Expected 200 and overview for /api/ai-advisor/summary, got ${res6C.status}`);
+    }
+
     console.log('\n--- ALL AUDITED END-TO-END API TESTS PASSED SUCCESSFULLY! ---');
     server.close(() => process.exit(0));
   } catch (err) {

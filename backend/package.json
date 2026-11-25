@@ -7,9 +7,15 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
-    "test": "node test_module3.js"
+    "test": "node test_complete_integration.js",
+    "test:m3": "node test_module3.js",
+    "test:m4": "node test_module4_evaluation.js",
+    "test:m5": "node test_module5_ai.js",
+    "test:e2e": "node test_e2e_api.js",
+    "verify:ai": "node verify_gemini_connection.js"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2"

@@ -180,3 +180,179 @@ export async function fetchDatasetStats() {
     categories,
   };
 }
+
+/**
+ * Module 5: Client-side AI fallback explanation generator
+ */
+export function generateClientFallbackExplanation(student, scholarship, evaluatedRecord = null) {
+  if (!student || !scholarship) return '';
+  const isEligible = evaluatedRecord ? evaluatedRecord.status === 'ELIGIBLE' : true;
+  const isAlmost = evaluatedRecord ? (evaluatedRecord.status === 'POTENTIALLY_ELIGIBLE' || evaluatedRecord.status === 'ALMOST_ELIGIBLE') : false;
+
+  const studentCgpa = typeof student.cgpa === 'number' ? student.cgpa.toFixed(2) : Number(student.cgpa || 0).toFixed(2);
+  const minCgpa = (scholarship.min_cgpa || 0).toFixed(2);
+  const cgpaMargin = (student.cgpa - scholarship.min_cgpa).toFixed(2);
+  const deptStr = scholarship.department === 'All' ? 'any academic discipline' : scholarship.department.replace(/;/g, ', ');
+
+  if (isEligible) {
+    let text = `You are a strong match for the ${scholarship.name} offered by ${scholarship.provider}. `;
+    if (Number(cgpaMargin) >= 0) {
+      text += `Your CGPA of ${studentCgpa} meets the required ${minCgpa} cutoff${Number(cgpaMargin) > 0 ? ` (exceeding it by +${cgpaMargin})` : ''}. `;
+    }
+    text += `Your department (${student.department}) is eligible under ${deptStr}. `;
+    if (scholarship.need_based === 'yes') {
+      text += `Your need-based assistance requirement qualifies you for this ৳${Number(scholarship.amount_bdt).toLocaleString('en-US')} BDT funding.`;
+    } else {
+      text += `This merit-based award offers ৳${Number(scholarship.amount_bdt).toLocaleString('en-US')} BDT in tuition assistance.`;
+    }
+    return text;
+  }
+
+  if (isAlmost) {
+    const missing = evaluatedRecord?.explanation?.missingRequirements ||
+                    evaluatedRecord?.breakdown?.missingReasons ||
+                    evaluatedRecord?.explanation?.incompleteRequirements || [];
+    let text = `You are close to qualifying for the ${scholarship.name} by ${scholarship.provider}. `;
+    if (missing.length > 0) {
+      text += `Key requirements to review or confirm: ${missing.join('; ')}. `;
+    }
+    text += `This opportunity provides ৳${Number(scholarship.amount_bdt).toLocaleString('en-US')} BDT before ${scholarship.deadline}.`;
+    return text;
+  }
+
+  return `Evaluated against ${scholarship.name}: Criteria not met for current academic profile.`;
+}
+
+/**
+ * Module 5: Fetch AI Advisor service status
+ */
+export async function fetchAiStatus() {
+  try {
+    const res = await fetch(`${API_BASE_URL}/ai-advisor/status`);
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch (err) {
+    console.warn('[API Client] Backend unreachable for AI status, assuming fallback mode:', err.message);
+  }
+
+  return {
+    success: true,
+    service: 'ScholarMate AI Advisor (Client Mode)',
+    apiKeyConfigured: false,
+    mode: 'fallback_active',
+    status: 'healthy',
+  };
+}
+
+/**
+ * Module 5: Request personalized AI explanation for a single scholarship
+ */
+export async function fetchAiScholarshipExplanation(studentProfile, scholarship, evaluatedRecord = null) {
+  try {
+    const res = await fetch(`${API_BASE_URL}/ai-advisor/explain`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        student: studentProfile,
+        scholarship,
+        evaluatedRecord,
+      }),
+    });
+
+    if (res.ok) {
+      const json = await res.json();
+      return json.data;
+    }
+  } catch (err) {
+    console.warn('[API Client] AI Advisor endpoint error, using client fallback:', err.message);
+  }
+
+  return {
+    scholarshipId: scholarship.id,
+    explanation: generateClientFallbackExplanation(studentProfile, scholarship, evaluatedRecord),
+    source: 'fallback',
+    isFallback: true,
+    model: 'client_fallback_advisor',
+  };
+}
+
+/**
+ * Module 5: Request batch AI explanations for multiple scholarships
+ */
+export async function fetchAiBatchExplanations(studentProfile, records = []) {
+  if (!Array.isArray(records) || records.length === 0) return [];
+
+  try {
+    const res = await fetch(`${API_BASE_URL}/ai-advisor/explain`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        student: studentProfile,
+        records,
+      }),
+    });
+
+    if (res.ok) {
+      const json = await res.json();
+      return json.data;
+    }
+  } catch (err) {
+    console.warn('[API Client] Batch AI Advisor error, using client fallback:', err.message);
+  }
+
+  return records.map((rec) => {
+    const scholarship = rec.scholarship || rec;
+    const evaluatedRecord = rec.evaluatedRecord || rec;
+    return {
+      scholarshipId: scholarship.id,
+      explanation: generateClientFallbackExplanation(studentProfile, scholarship, evaluatedRecord),
+      source: 'fallback',
+      isFallback: true,
+      model: 'client_fallback_advisor',
+    };
+  });
+}
+
+/**
+ * Module 5: Request executive AI summary for student profile
+ */
+export async function fetchAiAdvisorSummary(studentProfile, evaluationResults) {
+  try {
+    const res = await fetch(`${API_BASE_URL}/ai-advisor/summary`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        student: studentProfile,
+        evaluationResults,
+      }),
+    });
+
+    if (res.ok) {
+      const json = await res.json();
+      return json.data;
+    }
+  } catch (err) {
+    console.warn('[API Client] Executive summary API error, using client fallback:', err.message);
+  }
+
+  const eligibleCount = evaluationResults?.summary?.eligibleCount || evaluationResults?.classification?.eligible?.length || 0;
+  const potentialCount = evaluationResults?.summary?.potentiallyEligibleCount || evaluationResults?.classification?.potentiallyEligible?.length || 0;
+  const totalAid = evaluationResults?.summary?.totalEligibleAid || 0;
+
+  return {
+    overview: `Hello ${studentProfile.name || 'Student'}, based on your ${studentProfile.department} profile (CGPA ${studentProfile.cgpa}), our engine matched ${eligibleCount} fully eligible scholarships worth ৳${Number(totalAid).toLocaleString('en-US')} BDT in potential aid. You also have ${potentialCount} opportunities with minor prerequisites to unlock.`,
+    topStrengths: [
+      studentProfile.cgpa >= 3.5 ? `High academic merit with a CGPA of ${studentProfile.cgpa}` : `Solid academic standing (CGPA ${studentProfile.cgpa})`,
+      `Approved eligibility for ${studentProfile.department} departmental awards`,
+      studentProfile.needBased ? 'Qualifies for high-impact need-based tuition waivers' : 'Merit-focused award eligibility across universities',
+    ],
+    recommendedActionPlan: [
+      eligibleCount > 0 ? `Prioritize applying for your top ${Math.min(3, eligibleCount)} eligible scholarships.` : 'Review almost-eligible requirements.',
+      'Prepare essential documentation (official transcript, recommendation letters).',
+      'Track nearest application deadlines to ensure timely submission.',
+    ],
+    source: 'fallback',
+    isFallback: true,
+  };
+}
