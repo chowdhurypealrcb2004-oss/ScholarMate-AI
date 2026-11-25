@@ -12,7 +12,7 @@ import {
   evaluateStudentScholarshipsClient,
 } from '../utils/eligibilityEvaluator';
 
-const API_BASE_URL = '/api';
+const API_BASE_URL = 'https://scholar-mate-ai-cyan.vercel.app/';
 
 export async function fetchScholarships(params = {}) {
   try {
