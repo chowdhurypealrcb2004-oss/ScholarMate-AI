@@ -18,7 +18,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
-const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
+const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3.6-flash';
 
 // Initialize Gemini client if key is available and not a placeholder
 let genAI = null;
@@ -336,3 +336,4 @@ export default {
   generateBatchScholarshipExplanations,
   generateAdvisorExecutiveSummary,
 };
+
