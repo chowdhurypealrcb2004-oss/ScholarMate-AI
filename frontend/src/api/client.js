@@ -8,6 +8,9 @@ import {
   matchStudentScholarshipsClient,
   validateStudentProfile,
 } from '../utils/eligibilityMatcher';
+import {
+  evaluateStudentScholarshipsClient,
+} from '../utils/eligibilityEvaluator';
 
 const API_BASE_URL = '/api';
 
@@ -123,6 +126,32 @@ export async function postStudentMatch(profile) {
 
   // Safe client-side execution fallback
   return matchStudentScholarshipsClient(profile, scholarshipsCatalog);
+}
+
+/**
+ * Module 4: Evaluates student eligibility against scholarship requirements
+ * Submits to POST /api/evaluate with client-side fallback
+ * @param {Object} profile
+ * @returns {Promise<Object>}
+ */
+export async function evaluateStudentEligibility(profile) {
+  try {
+    const res = await fetch(`${API_BASE_URL}/evaluate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(profile),
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      return data;
+    }
+  } catch (err) {
+    console.warn('[API Client] Backend unreachable for /evaluate, evaluating client-side:', err.message);
+  }
+
+  // Robust client-side fallback
+  return evaluateStudentScholarshipsClient(profile, scholarshipsCatalog);
 }
 
 export async function fetchDatasetStats() {

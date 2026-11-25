@@ -23,6 +23,26 @@ export const FINANCIAL_NEED_OPTIONS = [
   { value: false, label: 'No, looking for merit-based only' },
 ];
 
+export const DEGREE_LEVELS = [
+  { value: 'Undergraduate', label: 'Undergraduate (Bachelor\'s Degree)' },
+  { value: 'Graduate', label: 'Graduate (Master\'s Degree)' },
+  { value: 'PhD', label: 'Doctorate (Ph.D.)' },
+  { value: 'Diploma', label: 'High School / Diploma' },
+  { value: 'Other', label: 'Other Qualifications' },
+];
+
+export const COUNTRY_OPTIONS = [
+  { value: 'Bangladesh', label: 'Bangladesh (Domestic)' },
+  { value: 'International', label: 'International / Study Abroad' },
+  { value: 'Any', label: 'Open to Any Region' },
+];
+
+export const ELIGIBILITY_STATUS = {
+  ELIGIBLE: 'ELIGIBLE',
+  POTENTIALLY_ELIGIBLE: 'POTENTIALLY_ELIGIBLE',
+  NOT_ELIGIBLE: 'NOT_ELIGIBLE',
+};
+
 /**
  * Validates a student profile
  * @param {Object} profile

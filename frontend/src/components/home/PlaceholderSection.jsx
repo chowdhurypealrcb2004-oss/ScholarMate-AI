@@ -12,19 +12,36 @@ import {
 import Badge from '../common/Badge';
 import StudentProfileForm from '../profile';
 import MatchResultsView from '../scholarships/MatchResultsView';
-import { postStudentMatch } from '../../api/client';
+import EligibilityResultsView from '../eligibility/EligibilityResultsView';
+import { postStudentMatch, evaluateStudentEligibility } from '../../api/client';
 import rawScholarshipsCatalog from '../../data/scholarships.json';
 
 const DEMO_PRESETS = [
   {
     id: 'ayesha',
-    label: 'Ayesha (CSE, 3.75, Need-Based)',
+    label: 'Ayesha (CSE, 3.75, Complete Profile)',
     profile: {
       name: 'Ayesha Rahman',
       department: 'CSE',
       cgpa: 3.75,
       gender: 'Female',
       needBased: true,
+      degreeLevel: 'Undergraduate',
+      countryPreference: 'Bangladesh',
+      hasPortfolio: true,
+      hasVolunteerHours: true,
+    },
+  },
+  {
+    id: 'nusrat-incomplete',
+    label: 'Nusrat (BBA, 3.40, Incomplete Profile)',
+    profile: {
+      name: 'Nusrat Jahan',
+      department: 'BBA',
+      cgpa: 3.40,
+      gender: 'Female',
+      needBased: true,
+      // degreeLevel and countryPreference omitted to demonstrate Incomplete Profile handling
     },
   },
   {
@@ -36,17 +53,21 @@ const DEMO_PRESETS = [
       cgpa: 3.55,
       gender: 'Male',
       needBased: false,
+      degreeLevel: 'Undergraduate',
+      countryPreference: 'Bangladesh',
     },
   },
   {
-    id: 'nusrat',
-    label: 'Nusrat (BBA, 3.40, Need-Based)',
+    id: 'ineligible-demo',
+    label: 'Karim (English, 2.10, Ineligible)',
     profile: {
-      name: 'Nusrat Jahan',
-      department: 'BBA',
-      cgpa: 3.40,
-      gender: 'Female',
-      needBased: true,
+      name: 'Karim Ullah',
+      department: 'English',
+      cgpa: 2.10,
+      gender: 'Male',
+      needBased: false,
+      degreeLevel: 'Masters',
+      countryPreference: 'USA',
     },
   },
 ];
@@ -54,7 +75,9 @@ const DEMO_PRESETS = [
 export default function PlaceholderSection({ onGetStarted }) {
   const [studentProfile, setStudentProfile] = useState(null);
   const [isMatching, setIsMatching] = useState(false);
+  const [evaluationResults, setEvaluationResults] = useState(null);
   const [matchResults, setMatchResults] = useState(null);
+  const [activeResultsView, setActiveResultsView] = useState('evaluation'); // 'evaluation' | 'catalog'
   const [matchError, setMatchError] = useState(null);
   const [showCatalogFirst, setShowCatalogFirst] = useState(false);
 
@@ -64,21 +87,39 @@ export default function PlaceholderSection({ onGetStarted }) {
     setStudentProfile(profile);
 
     try {
-      const results = await postStudentMatch(profile);
-      setMatchResults(results);
+      const [evalResults, matchRes] = await Promise.all([
+        evaluateStudentEligibility(profile),
+        postStudentMatch(profile),
+      ]);
+      setEvaluationResults(evalResults);
+      setMatchResults(matchRes);
 
       // Smooth scroll to results
       setTimeout(() => {
-        const el = document.getElementById('matching-results-section');
+        const el = document.getElementById('eligibility-results-view') || document.getElementById('matching-results-section');
         if (el) {
           el.scrollIntoView({ behavior: 'smooth' });
         }
       }, 150);
     } catch (err) {
       console.error('Matching Error:', err);
-      setMatchError(err.message || 'Failed to match scholarships. Please try again.');
+      setMatchError(err.message || 'Failed to evaluate eligibility. Please try again.');
     } finally {
       setIsMatching(false);
+    }
+  };
+
+  const handleProfileFieldUpdate = async (fieldName, nextValue) => {
+    const updatedProfile = {
+      ...studentProfile,
+      [fieldName]: nextValue,
+    };
+    setStudentProfile(updatedProfile);
+    try {
+      const evalResults = await evaluateStudentEligibility(updatedProfile);
+      setEvaluationResults(evalResults);
+    } catch (err) {
+      console.warn('Field update re-eval error:', err);
     }
   };
 
@@ -131,8 +172,46 @@ export default function PlaceholderSection({ onGetStarted }) {
           </div>
         )}
 
-        {/* MODULE 3: SCHOLARSHIP MATCHING & CATALOG RESULTS */}
-        {matchResults ? (
+        {/* VIEW MODE SWITCHER (Module 4 vs Module 3) */}
+        {(evaluationResults || matchResults) && (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.75rem',
+              marginTop: '2.5rem',
+              marginBottom: '0.5rem',
+              flexWrap: 'wrap',
+            }}
+          >
+            <button
+              type="button"
+              className={`button button-sm ${activeResultsView === 'evaluation' ? 'button-primary' : 'button-secondary'}`}
+              onClick={() => setActiveResultsView('evaluation')}
+              style={{ fontWeight: 700 }}
+            >
+              <span>🎯 Module 4: Eligibility Evaluation View</span>
+            </button>
+            <button
+              type="button"
+              className={`button button-sm ${activeResultsView === 'catalog' ? 'button-primary' : 'button-secondary'}`}
+              onClick={() => setActiveResultsView('catalog')}
+            >
+              <span>📋 Module 3: Catalog Match View</span>
+            </button>
+          </div>
+        )}
+
+        {/* MODULE 4 & MODULE 3 RESULTS DISPLAY */}
+        {evaluationResults && activeResultsView === 'evaluation' ? (
+          <EligibilityResultsView
+            studentProfile={studentProfile}
+            evaluationResults={evaluationResults}
+            onEditProfile={handleEditProfile}
+            onProfileFieldUpdate={handleProfileFieldUpdate}
+          />
+        ) : matchResults ? (
           <MatchResultsView
             studentProfile={studentProfile}
             matchResults={matchResults}
@@ -170,7 +249,7 @@ export default function PlaceholderSection({ onGetStarted }) {
           </div>
         )}
 
-        {/* MODULE 5: FUTURE INTEGRATION POINT */}
+        {/* MODULE 5: INTEGRATION POINT */}
         <div
           className="module-placeholder-box"
           id="dashboard-module-slot"
@@ -181,7 +260,7 @@ export default function PlaceholderSection({ onGetStarted }) {
           }}
         >
           <Badge variant="emerald" icon={LayoutDashboard}>
-            MODULE 5 INTEGRATION POINT
+            MODULE 5 INTEGRATION READY
           </Badge>
 
           <h3 style={{
@@ -193,13 +272,14 @@ export default function PlaceholderSection({ onGetStarted }) {
           </h3>
 
           <p style={{ maxWidth: '640px', margin: '1rem auto' }}>
-            This section will display advanced AI-generated contextual advice, application preparation checklists,
-            and exportable eligibility reports (Module 4 & Module 5).
+            Module 4 has successfully evaluated and structured eligibility datasets with requirement comparisons,
+            categorized classifications (Eligible, Potentially Eligible, Not Eligible), and generated AI Advisor context
+            ready for interactive charts and Google Gemini recommendations in Module 5.
           </p>
 
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', color: 'var(--emerald-600)', fontWeight: 600 }}>
             <CheckCircle size={18} />
-            <span>Module 3 Matching & Data Engine is ready for Module 4 AI Advisor integration.</span>
+            <span>Module 4 Eligibility Evaluation logic and UI are fully integrated with Module 2 & Module 3.</span>
           </div>
         </div>
 

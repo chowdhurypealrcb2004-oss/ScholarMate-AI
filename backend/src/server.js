@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import scholarshipRoutes from './routes/scholarshipRoutes.js';
 import matchRoutes from './routes/matchRoutes.js';
+import evaluationRoutes from './routes/evaluationRoutes.js';
 import scholarshipService from './services/csvService.js';
 
 dotenv.config();
@@ -32,9 +33,10 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// Module 3 Routes
+// Module 3 & Module 4 Routes
 app.use('/api/scholarships', scholarshipRoutes);
 app.use('/api/match', matchRoutes);
+app.use('/api/evaluate', evaluationRoutes);
 
 // Fallback error handler
 app.use((err, req, res, next) => {
